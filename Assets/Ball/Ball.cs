@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using Unity.Collections;
 using UnityEngine;
 
@@ -11,7 +12,7 @@ public class Ball : MonoBehaviour, IGrabbable
     private float followSpeed = 20f;
     private float maxAnchorDistance = 2.5f;
     private float anchorDistance = default;
-    private const float closeEnough = 0.2f;
+    private const float closeEnough = 0.5f;
     [SerializeField] private Rigidbody rb;
 
     public void Grab(Transform anchor)
@@ -36,16 +37,23 @@ public class Ball : MonoBehaviour, IGrabbable
 
         anchorDistance = Vector3.Distance(transform.position, anchor.position);
 
+        if (anchorDistance > closeEnough)
+        {
+            //transform.position = Vector3.MoveTowards(transform.position, anchor.position, followSpeed * Time.deltaTime);
+            //rb.velocity = Vector3.MoveTowards(transform.position, anchor.position, followSpeed);
+            float speedMultiplier = 100f;
+            rb.velocity = (anchor.position - transform.position).normalized * (followSpeed * speedMultiplier * Time.deltaTime);
+        }
+        else
+        {
+            rb.velocity = Vector3.zero;
+            rb.MovePosition(anchor.position);
+        }
+        
         if (anchorDistance > maxAnchorDistance)
         {
             Release();
-            return;
         }
 
-        if (anchorDistance > closeEnough)
-        {
-            transform.position = Vector3.MoveTowards(transform.position, anchor.position, followSpeed * Time.deltaTime);    
-        }
-        
     }
 }

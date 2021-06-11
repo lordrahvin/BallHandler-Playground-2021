@@ -1,18 +1,21 @@
 using System;
+using System.ComponentModel.Design;
 using UnityEngine;
+using UnityEngine.Animations;
 
 public class Move : MonoBehaviour
 {
     // Movement code provided from Renaissance Coders youtube tutorial
 
     private float velocity = 10;
-    private float turnSpeed = 5;
+    private float turnSpeed = 10;
     private float height = 0.5f;
     private float heightPadding = 0.15f;
+    private float rotationThreshold = 1f;
     [SerializeField] private LayerMask ground;
     private float maxSlopeAngle = 120f;
-    [SerializeField] private bool debug; 
-    
+    [SerializeField] private bool debug;
+    private Rigidbody rb;
     
     private Vector2 input;
     private float angle;
@@ -28,6 +31,7 @@ public class Move : MonoBehaviour
     private void Start()
     {
         cam = Camera.main.transform;
+        rb = GetComponent<Rigidbody>();
     }
 
     private void Update()
@@ -39,11 +43,10 @@ public class Move : MonoBehaviour
         CheckGround();
         ApplyGravity();
         DrawDebugLines();
-        
-        if (Math.Abs(input.x) < 1 && Math.Abs(input.y) < 1) { return; }
-       
+        Stand();
         Rotate();
         Walk();
+        
     }
 
     private void GetInput()
@@ -61,14 +64,23 @@ public class Move : MonoBehaviour
 
     private void Rotate()
     {
+        if (Math.Abs(input.x) < 1 && Math.Abs(input.y) < 1) { return; }
         targetRotation = Quaternion.Euler(0, angle, 0);
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, turnSpeed * Time.deltaTime);
     }
 
     private void Walk()
     {
-        if (slopeAngle > maxSlopeAngle) { return;}
-        transform.position += forward * velocity * Time.deltaTime;
+        if (!grounded || slopeAngle > maxSlopeAngle || (Math.Abs(input.x) < 1 && Math.Abs(input.y) < 1) || Quaternion.Angle(targetRotation, transform.rotation) > rotationThreshold) 
+        { 
+            rb.velocity = Vector3.zero;
+            return;
+        }
+        
+        //transform.position += forward * velocity * Time.deltaTime;
+        //rb.MovePosition(transform.position + forward * (velocity * Time.deltaTime));;
+        float speedMultiplier = 0.6f;
+        rb.velocity = forward * (velocity * speedMultiplier);
     }
 
     private void CalculateForward()
@@ -123,5 +135,10 @@ public class Move : MonoBehaviour
         if (!debug) { return; }
         Debug.DrawLine(transform.position, transform.position + forward * (height * 2f), Color.blue);
         Debug.DrawLine(transform.position, transform.position - Vector3.up * height, Color.green);
+    }
+
+    private void Stand()
+    {
+        transform.rotation = Quaternion.LookRotation(forward, hitInfo.normal);
     }
 }
